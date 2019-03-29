@@ -44,20 +44,26 @@ void drawRoboticArm(){
 }
 
 void drawArm(float x, float y, float len, float angle){
-  strokeWeight(1/(scale/6));
+  strokeWeight(1/(scale/4));
   translate(x,y);
   rotate(angle);
   line(0, 0, 0, len);
   stroke(255,0,0);
   drawPoint(0,0);
   drawPoint(0,len);
+  stroke(255);
 }
 
 float anguloSup = 0.0;
 float anguloInf = 0.0;
 
-PVector bracoSup = new PVector(0,3);
-PVector bracoInf = new PVector(0,5);
+// Velocidade do braço superior, 30graus/2s, ou 1/12*pi rad / s
+float aVelSup = (1.0/12.0)*PI;
+
+// Velocidade do braço inferior, 60graus/2s, ou 1/6*pi rad/s
+float aVelInf = (1.0/6.0)*PI;
+
+boolean stop = false;
 
 void draw() {
   
@@ -67,8 +73,14 @@ void draw() {
 
   //drawRoboticArm();
   
-  anguloSup += 0.1;
-  anguloInf += 0.01;
+  if(!stop){
+    anguloSup += aVelSup/60;
+    anguloInf += aVelInf/60;
+  }
+  
+  if(anguloSup >= radians(30) || anguloInf >= radians(60)){
+    stop = true;
+  }
   
   pushMatrix();
   drawArm(0, 0, 3, anguloInf);
