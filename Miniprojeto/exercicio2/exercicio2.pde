@@ -32,17 +32,6 @@ void drawPoint(float x, float y){
   strokeWeight(1/scale);
 }
 
-void drawRoboticArm(){
-  stroke(169,169,169);
-  fill(255,255,102);
-  
-  rect(-0.5, -0.5, 1, 4, 1);
-  rect(-0.5, 2.5, 1, 3, 1);
-  
-  stroke(255);
-  fill(255);
-}
-
 void drawArm(float x, float y, float len, float angle){
   strokeWeight(1/(scale/4));
   translate(x,y);
@@ -71,8 +60,6 @@ void draw() {
   background(0,0,0);
   setupScreen();
 
-  //drawRoboticArm();
-  
   if(!stop){
     anguloSup += aVelSup/60;
     anguloInf += aVelInf/60;
@@ -83,17 +70,11 @@ void draw() {
   }
   
   pushMatrix();
-  drawArm(0, 0, 3, anguloInf);
-  drawArm(0, 3, 2, anguloSup);
+  //Parte superior
+  drawArm(0, 5, -2, anguloSup); 
+  //Parte inferior
+  drawArm(0, -2, -3, anguloInf);
   popMatrix();
 
-  stroke(255,0,0);
-
-  //drawPoint(0,5);
-  //drawPoint(0,3);
-  
-  
-  
-  
-  
+  stroke(255,0,0);  
 }
