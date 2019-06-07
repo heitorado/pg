@@ -4,23 +4,55 @@ var ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-canvas.addEventListener
+// Event listener para adicionar pontos quando usuário clica.
+// salva em buffer para ser adicionado no array completo de curvas de Bezier.
+canvas.addEventListener("click", (evt) => {
+    console.log(evt.x);
+    console.log(evt.y);
+    curveBuff.push([evt.x, evt.y]);
+
+    draw();
+});
+
+// Event listener de teclas
+document.addEventListener("keydown", keyPush);
+function keyPush(evt) {
+    switch(evt.keyCode) {
+        // ESC para usuario parar de desenhar uma curva.
+        case 27:
+            console.log("esc pressionado");
+            if(curveBuff.length > 1){
+                allBezierCurves.pop();
+                allBezierCurves.push(curveBuff);
+                curveBuff = [];
+                allBezierCurves.push(curveBuff);
+            }
+            break;
+    }
+}
+
 
 // Inicializa e configura checkboxes de visualização
 var showCtrlPoints = document.getElementById('show-ctrl-pts');
-showCtrlPoints.addEventListener(("change"), (e) => {
+showCtrlPoints.addEventListener(("change"), (evt) => {
     draw();
 });
 
 var showCtrlPoli = document.getElementById('show-ctrl-poli');
-showCtrlPoli.addEventListener(("change"), (e) => {
+showCtrlPoli.addEventListener(("change"), (evt) => {
     draw();
 });
 
 var showCurves = document.getElementById('show-curve');
-showCurves.addEventListener(("change"), (e) => {
+showCurves.addEventListener(("change"), (evt) => {
     draw();
 });
+
+// Inicializa vetor de Curvas, que contém os vetores de pontos de cada curva de Bézier.
+allBezierCurves = []
+
+// Inicializa buffer de pontos para criar uma nova curva arbitraria quando clicar no canvas
+curveBuff = []
 
 
 // Algoritmo deCasteljau
@@ -103,25 +135,39 @@ function clearCanvas(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function updateCurvesArray(){
+    //var c1 = [[100,440],[200,500],[300,100], [450,550]];
+    //var c2 = [[110,450],[210,510],[310,110], [460,560]];
+    //var c3 = [[120,460],[220,520],[320,120], [470,570]];
+
+    //allBezierCurves = [c1,c2,c3];
+    
+    if(curveBuff.length > 0){
+        allBezierCurves.pop();
+        allBezierCurves.push(curveBuff);
+    }
+}
+
 
 // "main" function - Iniciada sempre que a janela carrega.
 window.onload = draw();
 
 function draw(){
     clearCanvas();
+    updateCurvesArray();
 
-    points = [[100,440],[200,500],[300,100], [450,550]];
-
-    if(showCtrlPoints.checked){
-        drawPoints(points);
-    }
-
-    if(showCtrlPoli.checked){
-        drawControlPolygons(points, "gray", 0.5);
-    }
-
-    if(showCurves.checked){
-        drawBezier(points, 100);
+    for(var i = 0; i < allBezierCurves.length; ++i){
+        if(showCtrlPoints.checked){
+            drawPoints(allBezierCurves[i]);
+        }
+    
+        if(showCtrlPoli.checked){
+            drawControlPolygons(allBezierCurves[i], "gray", 0.5);
+        }
+    
+        if(showCurves.checked){
+            drawBezier(allBezierCurves[i], 100);
+        }
     }
 }
 
