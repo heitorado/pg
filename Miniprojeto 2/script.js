@@ -1,15 +1,18 @@
 // Inicializa Canvas e configura altura e largura
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 800;
+canvas.height = 400;
 
 // Event listener para adicionar pontos quando usuário clica.
 // salva em buffer para ser adicionado no array completo de curvas de Bezier.
 canvas.addEventListener("click", (evt) => {
-    console.log(evt.x);
-    console.log(evt.y);
-    curveBuff.push([evt.x, evt.y]);
+    var rect = canvas.getBoundingClientRect();
+    var x = evt.clientX - rect.left
+    var y = evt.clientY - rect.top
+    console.log(x);
+    console.log(y);
+    curveBuff.push([x, y]);
 
     draw();
 });
@@ -166,7 +169,7 @@ function draw(){
         }
     
         if(showCurves.checked){
-            drawBezier(allBezierCurves[i], 100);
+            drawBezier(allBezierCurves[i], 1000);
         }
     }
 }
