@@ -10,11 +10,18 @@ canvas.addEventListener("click", (evt) => {
     var rect = canvas.getBoundingClientRect();
     var x = evt.clientX - rect.left
     var y = evt.clientY - rect.top
-    console.log(x);
-    console.log(y);
     curveBuff.push([x, y]);
 
     draw();
+});
+
+canvas.addEventListener("mousemove", (evt) => {
+    var rect = canvas.getBoundingClientRect();
+    var x = evt.clientX - rect.left
+    var y = evt.clientY - rect.top
+
+    document.getElementById("mouse-x").innerHTML = x;
+    document.getElementById("mouse-y").innerHTML = y;
 });
 
 // Event listener de teclas
@@ -116,6 +123,8 @@ function drawBezier(points, iter){
     }
 }
 
+// Funções Auxiliares as de draw
+
 // Função auxiliar para desenhar uma linha
 // Recebe um ponto origem no formato [100,244] por exemplo
 // Recebe um ponto destino no formato [12,244] por exemplo
@@ -159,17 +168,21 @@ function draw(){
     clearCanvas();
     updateCurvesArray();
 
-    for(var i = 0; i < allBezierCurves.length; ++i){
+    var validBezierCurves = allBezierCurves.filter( (elem) => {
+        return elem.length > 0;
+    });
+
+    for(var i = 0; i < validBezierCurves.length; ++i){
         if(showCtrlPoints.checked){
-            drawPoints(allBezierCurves[i]);
+            drawPoints(validBezierCurves[i]);
         }
     
         if(showCtrlPoli.checked){
-            drawControlPolygons(allBezierCurves[i], "gray", 0.5);
+            drawControlPolygons(validBezierCurves[i], "gray", 0.5);
         }
     
         if(showCurves.checked){
-            drawBezier(allBezierCurves[i], 1000);
+            drawBezier(validBezierCurves[i], 1000);
         }
     }
 }
