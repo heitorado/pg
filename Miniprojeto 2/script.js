@@ -22,6 +22,13 @@ canvas.addEventListener("mousemove", (evt) => {
 
     document.getElementById("mouse-x").innerHTML = x;
     document.getElementById("mouse-y").innerHTML = y;
+
+    if(touchedAnyControlPoint({
+        x: x,
+        y: y
+    })){
+        console.log("tocou na porcaria do ponto");
+    } 
 });
 
 // Event listener de teclas
@@ -65,7 +72,7 @@ evalConfig.addEventListener("change", (e) => {
     draw();
 });
 
-// Inicializa vetor de Curvas, que contém os vetores de pontos de cada curva de Bézier.
+// Inicializa vetor de Curvas, que contém os vetores de pontos de cada poligono de controle que forma uma curva de Bézier.
 var allBezierCurves = []
 
 // Inicializa buffer de pontos para criar uma nova curva arbitraria quando clicar no canvas
@@ -73,6 +80,9 @@ var curveBuff = []
 
 // Inicializa número configurável de avaliações para as curvas
 var configurableEvaluation = 100;
+
+// Inicializa valor do raio que cada ponto de controle terá
+var pointRadius = 3.5;
 
 
 // Algoritmo deCasteljau
@@ -102,7 +112,7 @@ function drawPoints(points){
     for(var i = 0; i < points.length; ++i){
         ctx.beginPath();
         ctx.fillStyle = "black";
-        ctx.arc(points[i][x], points[i][y], 3.5 , 0, 2*Math.PI);
+        ctx.arc(points[i][x], points[i][y], pointRadius , 0, 2*Math.PI);
         ctx.fill();
     }
 }
@@ -134,6 +144,31 @@ function drawBezier(points, iter){
 }
 
 // Funções Auxiliares as de draw
+
+function insidePointRadius(el, clk){
+    var v = {
+        x: el[0] - clk.x,
+        y: el[1] - clk.y
+    };
+    return (Math.sqrt(v.x * v.x + v.y * v.y) <= pointRadius);
+}
+
+function touchedAnyControlPoint(click){
+    var touched = false;
+
+    for (var i = 0; i < allBezierCurves.length; i++) {
+        for(var j=0;j < allBezierCurves[i].length;j++){
+
+            const element = allBezierCurves[i][j];
+            if (insidePointRadius(element, click)){
+                //moveIndexI = i;
+                //moveIndexJ = j;
+                touched = true;
+            }
+        }
+    }
+    return touched;
+}
 
 // Função auxiliar para desenhar uma linha
 // Recebe um ponto origem no formato [100,244] por exemplo
