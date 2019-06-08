@@ -58,11 +58,21 @@ showCurves.addEventListener(("change"), (evt) => {
     draw();
 });
 
+// Event listener para o input do número de avaliações das curvas
+var evalConfig = document.getElementById('input-evaluations-number');
+evalConfig.addEventListener("change", (e) => {
+    configurableEvaluation = evalConfig.value;
+    draw();
+});
+
 // Inicializa vetor de Curvas, que contém os vetores de pontos de cada curva de Bézier.
-allBezierCurves = []
+var allBezierCurves = []
 
 // Inicializa buffer de pontos para criar uma nova curva arbitraria quando clicar no canvas
-curveBuff = []
+var curveBuff = []
+
+// Inicializa número configurável de avaliações para as curvas
+var configurableEvaluation = 100;
 
 
 // Algoritmo deCasteljau
@@ -182,7 +192,7 @@ function draw(){
         }
     
         if(showCurves.checked){
-            drawBezier(validBezierCurves[i], 1000);
+            drawBezier(validBezierCurves[i], configurableEvaluation);
         }
     }
 }
