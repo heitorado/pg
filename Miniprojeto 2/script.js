@@ -84,6 +84,9 @@ var configurableEvaluation = 100;
 // Inicializa valor do raio que cada ponto de controle terá
 var pointRadius = 3.5;
 
+// Inicializa variável para guardar a ferramenta de edição sendo usada
+var currentTool = "tool-add";
+
 
 // Algoritmo deCasteljau
 // points -> array de pontos q formam o poligono de controle ex: [[100,440],[200,500],[300,100]]
