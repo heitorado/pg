@@ -10,25 +10,66 @@ canvas.addEventListener("click", (evt) => {
     var rect = canvas.getBoundingClientRect();
     var x = evt.clientX - rect.left
     var y = evt.clientY - rect.top
-    curveBuff.push([x, y]);
+
+    console.log(currentTool);
+    
+    if(currentTool == "tool-add"){
+        curveBuff.push([x, y]);
+    } else if(touchedAnyControlPoint({x: x, y: y})){
+        if(currentTool == "tool-erase-point"){
+            findCurveAndRemovePoint({x: x, y: y});
+        }
+
+        if(currentTool == "tool-erase-curve"){
+            findCurveAndDestroy({x: x, y: y});
+        }
+    }
 
     draw();
 });
 
+// Event listener do canvas para ferramenta de arrastar pontos
+canvas.addEventListener("mousedown", (evt) => {
+    var rect = canvas.getBoundingClientRect();
+    var x = evt.clientX - rect.left
+    var y = evt.clientY - rect.top
+
+    if(touchedAnyControlPoint({x: x, y: y})){
+        dragging = true;
+    }
+    
+    draw();
+});
+
+canvas.addEventListener("mouseup", (evt) => {
+    dragging = false;
+    draw();
+});
+
+// Event listener do canvas para arrastar pontos pelo canvas.
+//  Também serve para mostrar coordenadas do mouse abaixo do canvas
 canvas.addEventListener("mousemove", (evt) => {
     var rect = canvas.getBoundingClientRect();
     var x = evt.clientX - rect.left
     var y = evt.clientY - rect.top
 
+    // Controla arraste do ponto de controle
+    if (dragging && currentTool == "tool-move-point") {
+        allBezierCurves[moveIndexI][moveIndexJ][0] = x;
+        allBezierCurves[moveIndexI][moveIndexJ][1] = y;
+        draw();
+    }
+
+    // Exibe coordenadas no HTML abaixo do canvas
     document.getElementById("mouse-x").innerHTML = x;
     document.getElementById("mouse-y").innerHTML = y;
 
-    if(touchedAnyControlPoint({
-        x: x,
-        y: y
-    })){
-        console.log("tocou na porcaria do ponto");
-    } 
+    // if(touchedAnyControlPoint({
+    //     x: x,
+    //     y: y
+    // })){
+    //     console.log("tocou na porcaria do ponto");
+    // } 
 });
 
 // Event listener de teclas
@@ -37,7 +78,6 @@ function keyPush(evt) {
     switch(evt.keyCode) {
         // ESC para usuario parar de desenhar uma curva.
         case 27:
-            console.log("esc pressionado");
             if(curveBuff.length > 1){
                 allBezierCurves.pop();
                 allBezierCurves.push(curveBuff);
@@ -65,6 +105,14 @@ showCurves.addEventListener(("change"), (evt) => {
     draw();
 });
 
+// Event listener para o botão de limpar
+var btnClean = document.getElementById('delete-all');
+btnClean.addEventListener(("click"), (evt) => {
+    allBezierCurves = [];
+    curveBuff = [];
+    draw();
+});
+
 // Event listener para o input do número de avaliações das curvas
 var evalConfig = document.getElementById('input-evaluations-number');
 evalConfig.addEventListener("change", (e) => {
@@ -82,11 +130,48 @@ var curveBuff = []
 var configurableEvaluation = 100;
 
 // Inicializa valor do raio que cada ponto de controle terá
-var pointRadius = 3.5;
+var pointRadius = 5;
 
 // Inicializa variável para guardar a ferramenta de edição sendo usada
+// Tipos de ferramenta:
+// tool-add
+// tool-move-point
+// tool-erase-point
+// tool-erase-curve
+// tool-add-to
 var currentTool = "tool-add";
 
+// Inicializa variável que controla o arraste dos pontos de controle
+// e as variáveis de coordenada
+var dragging = false;
+var moveIndexI = 0;
+var moveIndexJ = 0;
+
+// Event listeners para botões de tools.
+var btnToolAdd = document.getElementById("tool-add");
+btnToolAdd.addEventListener(("click"), (evt) => {
+    currentTool = "tool-add";
+});
+
+var btnToolMovePoint = document.getElementById('tool-move-point');
+btnToolMovePoint.addEventListener(("click"), (evt) => {
+    currentTool = "tool-move-point"
+});
+
+var btnToolErasePoint = document.getElementById('tool-erase-point');
+btnToolErasePoint.addEventListener(("click"), (evt) => {
+    currentTool = "tool-erase-point"
+});
+
+var btnToolEraseCurve = document.getElementById('tool-erase-curve');
+btnToolEraseCurve.addEventListener(("click"), (evt) => {
+    currentTool = "tool-erase-curve"
+});
+
+var btnToolAddTo = document.getElementById('tool-add-to');
+btnToolAddTo.addEventListener(("click"), (evt) => {
+    currentTool = "tool-add-to"
+});
 
 // Algoritmo deCasteljau
 // points -> array de pontos q formam o poligono de controle ex: [[100,440],[200,500],[300,100]]
@@ -146,6 +231,34 @@ function drawBezier(points, iter){
     }
 }
 
+// Funções de ferramentas
+function findCurveAndRemovePoint(pointClicked){
+    for (var i = 0; i < allBezierCurves.length; i++) {
+        for(var j=0;j < allBezierCurves[i].length;j++){
+
+            const element = allBezierCurves[i][j];
+            if (insidePointRadius(element, pointClicked)){
+                allBezierCurves[i].splice(j,1);
+                draw();
+                return;
+            }
+        }
+    }
+}
+
+function findCurveAndDestroy(pointClicked){
+    for (var i = 0; i < allBezierCurves.length; i++) {
+        for(var j=0;j < allBezierCurves[i].length;j++){
+            const element = allBezierCurves[i][j];
+            if (insidePointRadius(element, pointClicked)){
+                allBezierCurves.splice(i,1);
+                draw();
+                return;
+            }
+        }
+    }
+}
+
 // Funções Auxiliares as de draw
 
 function insidePointRadius(el, clk){
@@ -164,8 +277,8 @@ function touchedAnyControlPoint(click){
 
             const element = allBezierCurves[i][j];
             if (insidePointRadius(element, click)){
-                //moveIndexI = i;
-                //moveIndexJ = j;
+                moveIndexI = i;
+                moveIndexJ = j;
                 touched = true;
             }
         }
