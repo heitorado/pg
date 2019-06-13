@@ -86,6 +86,9 @@ function keyPush(evt) {
                 curveBuff = [];
                 allBezierCurves.push(curveBuff);
             }
+            // Habilita novamente botoes de ferramentas
+            enableAllToolButtons();
+            currentTool = "none";
             break;
     }
 }
@@ -141,7 +144,7 @@ var pointRadius = 5;
 // tool-erase-point
 // tool-erase-curve
 // tool-add-to
-var currentTool = "tool-add";
+var currentTool = "none";
 // Variavel que guarda estado da ferramenta. Usado em adição de pontos
 // state 1 -> esperando criar no ponto
 // state 2 -> esperando escolher onde ele será adjacente
@@ -159,6 +162,8 @@ var moveIndexJ = 0;
 var btnToolAdd = document.getElementById("tool-add");
 btnToolAdd.addEventListener(("click"), (evt) => {
     currentTool = "tool-add";
+
+    disableAllToolButtons();
 });
 
 var btnToolMovePoint = document.getElementById('tool-move-point');
@@ -350,6 +355,26 @@ function updateCurvesArray(){
     }
 }
 
+function disableAllToolButtons(){
+    btnClean.disabled = true;
+    evalConfig.disabled = true;
+    btnToolAdd.disabled = true;
+    btnToolMovePoint.disabled = true;
+    btnToolErasePoint.disabled = true;
+    btnToolEraseCurve.disabled = true;
+    btnToolAddTo.disabled = true;
+}
+
+function enableAllToolButtons(){
+    btnClean.disabled = false;
+    evalConfig.disabled = false;
+    btnToolAdd.disabled = false;
+    btnToolMovePoint.disabled = false;
+    btnToolErasePoint.disabled = false;
+    btnToolEraseCurve.disabled = false;
+    btnToolAddTo.disabled = false;
+}
+
 
 // "main" function - Iniciada sempre que a janela carrega.
 window.onload = draw();
@@ -361,6 +386,13 @@ function draw(){
     var validBezierCurves = allBezierCurves.filter( (elem) => {
         return elem.length > 0;
     });
+
+    if(validBezierCurves.length < 1){
+        btnToolMovePoint.disabled = true;
+        btnToolErasePoint.disabled = true; 
+        btnToolEraseCurve.disabled = true; 
+        btnToolAddTo.disabled = true;
+    }
 
     for(var i = 0; i < validBezierCurves.length; ++i){
         if(showCtrlPoints.checked){
