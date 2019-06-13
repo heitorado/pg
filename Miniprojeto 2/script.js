@@ -15,16 +15,25 @@ canvas.addEventListener("click", (evt) => {
     
     if(currentTool == "tool-add"){
         curveBuff.push([x, y]);
+    } else if(currentTool == "tool-add-to" && toolState == 1){
+        newPointBuffer = [x,y];
+        toolState = 2;
     } else if(touchedAnyControlPoint({x: x, y: y})){
         if(currentTool == "tool-erase-point"){
             findCurveAndRemovePoint({x: x, y: y});
         }
-
+        
         if(currentTool == "tool-erase-curve"){
             findCurveAndDestroy({x: x, y: y});
         }
+        
+        if (currentTool == "tool-add-to" && toolState == 2){
+            findCurveAndUpdate({x: x, y: y}, newPointBuffer);
+            newPointBuffer = [-1,-1];
+            toolState = 1;
+        }
     }
-
+    
     draw();
 });
 
@@ -63,13 +72,6 @@ canvas.addEventListener("mousemove", (evt) => {
     // Exibe coordenadas no HTML abaixo do canvas
     document.getElementById("mouse-x").innerHTML = x;
     document.getElementById("mouse-y").innerHTML = y;
-
-    // if(touchedAnyControlPoint({
-    //     x: x,
-    //     y: y
-    // })){
-    //     console.log("tocou na porcaria do ponto");
-    // } 
 });
 
 // Event listener de teclas
@@ -140,6 +142,12 @@ var pointRadius = 5;
 // tool-erase-curve
 // tool-add-to
 var currentTool = "tool-add";
+// Variavel que guarda estado da ferramenta. Usado em adição de pontos
+// state 1 -> esperando criar no ponto
+// state 2 -> esperando escolher onde ele será adjacente
+var toolState = 1;
+// Usado para armazenar o novo ponto que o usuario está inserindo
+var newPointBuffer = [-1,-1];
 
 // Inicializa variável que controla o arraste dos pontos de controle
 // e as variáveis de coordenada
@@ -194,14 +202,22 @@ function deCasteljau(points, t) {
 }
 
 // Desenha os pontos do array de pontos fornecido. Ex: [[100,440],[200,500],[300,100]]
-function drawPoints(points){
+function drawPoints(points, color="black"){
     var x = 0;
     var y = 1;
     for(var i = 0; i < points.length; ++i){
         ctx.beginPath();
-        ctx.fillStyle = "black";
+        ctx.fillStyle = color;
         ctx.arc(points[i][x], points[i][y], pointRadius , 0, 2*Math.PI);
         ctx.fill();
+    }
+}
+
+function drawBufferedPoint(point){
+    if(point != undefined){
+        if(point[0] > 0 && point[1] > 0){
+            drawPoints([[ point[0], point[1] ]], "gray");
+        }
     }
 }
 
@@ -252,6 +268,19 @@ function findCurveAndDestroy(pointClicked){
             const element = allBezierCurves[i][j];
             if (insidePointRadius(element, pointClicked)){
                 allBezierCurves.splice(i,1);
+                draw();
+                return;
+            }
+        }
+    }
+}
+
+function findCurveAndUpdate(pointClicked, newPoint){
+    for (var i = 0; i < allBezierCurves.length; i++) {
+        for(var j=0;j < allBezierCurves[i].length;j++){
+            const element = allBezierCurves[i][j];
+            if (insidePointRadius(element, pointClicked)){
+                allBezierCurves[i].splice(j, 0, newPoint);
                 draw();
                 return;
             }
@@ -336,6 +365,7 @@ function draw(){
     for(var i = 0; i < validBezierCurves.length; ++i){
         if(showCtrlPoints.checked){
             drawPoints(validBezierCurves[i]);
+            drawBufferedPoint(newPointBuffer);
         }
     
         if(showCtrlPoli.checked){
