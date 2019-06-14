@@ -1,8 +1,8 @@
 // Inicializa Canvas e configura altura e largura
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
-canvas.width = 800;
-canvas.height = 400;
+canvas.width = 1000;
+canvas.height = 700;
 
 // Event listener para adicionar pontos quando usuário clica.
 // salva em buffer para ser adicionado no array completo de curvas de Bezier.
@@ -230,7 +230,7 @@ function drawControlPolygons(points, color, width){
     var x = 0;
     var y = 1;
     for(var i = 0; i < points.length-1; ++i){
-        auxDrawLine(points[i], points[i+1], color, width)
+        auxDrawLine(points[i], points[i+1], color, width, 1);
     }
 }
 
@@ -248,7 +248,7 @@ function drawBezier(points, iter){
     }
 
     for(var i = 0; i < curvePoints.length-1; ++i){
-        auxDrawLine(curvePoints[i], curvePoints[i+1], "red", 1.0)
+        auxDrawLine(curvePoints[i], curvePoints[i+1], "yellow", 2.5)
     }
 }
 
@@ -325,9 +325,15 @@ function touchedAnyControlPoint(click){
 // Recebe um ponto destino no formato [12,244] por exemplo
 // Recebe uma cor para desenhar a linha
 // Recebe a grossura da linha
-function auxDrawLine(orig, dest, color, width){
+function auxDrawLine(orig, dest, color, width, control=0){
     var x = 0;
     var y = 1;
+
+    if(control == 1){
+        ctx.setLineDash([5, 3]);
+    } else {
+        ctx.setLineDash([]);
+    }
     
     ctx.beginPath();
     ctx.moveTo(orig[x], orig[y]);
@@ -401,7 +407,7 @@ function draw(){
         }
     
         if(showCtrlPoli.checked){
-            drawControlPolygons(validBezierCurves[i], "gray", 0.5);
+            drawControlPolygons(validBezierCurves[i], "black", 0.75);
         }
     
         if(showCurves.checked){

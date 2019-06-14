@@ -20,28 +20,12 @@
         <input type="checkbox" id="show-curve" checked>
         Exibir Curvas
       </div>
-      
-      <div>
-        <button type="button" id="delete-all">
-          Limpar tudo
-        </button>
-      </div>
-
-      <div>
-        Número de avaliações: 
-        <input type="number" id="input-evaluations-number" value="100">
-      </div>
     </div>
     <div id="canvas-container">
-      <canvas id="canvas" style="border: 2px; border-style: dotted;">
+      <canvas id="canvas">
       </canvas>
     </div>
-    
-    <div id="mouse-coordinates">
-      <p>MouseX:<i id="mouse-x"></i></p>
-      <p>MouseY:<i id="mouse-y"></i></p>
-    </div>
-    
+
     <div id="toolbox">
       <button type="button" id="tool-add">
         Criar novos pontos (aperte esc para finalizar a curva)
@@ -62,8 +46,23 @@
       <button type="button" id="tool-add-to">
         Adicionar ponto a curva ja existente
       </button>
+
+      <button type="button" id="delete-all">
+        Limpar tudo
+      </button>
     </div>
     
+    <div id="evaluation">
+      <div>
+        Número de avaliações: 
+        <input type="number" id="input-evaluations-number" value="100">
+      </div>
+    </div>  
+    
+    <div id="mouse-coordinates">
+      <p>MouseX:<i id="mouse-x"></i></p>
+      <p>MouseY:<i id="mouse-y"></i></p>
+    </div>
     <script type="text/javascript" src=".\script.js"></script>
   </body>
 </html>

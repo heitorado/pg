@@ -1,0 +1,22 @@
+body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+}
+
+#canvas{
+    background: #0063c7;
+    border: 1px;
+    border-style: solid;
+    border-color: white;
+    background-image: url("./tile.png");
+}
+
+#controls{
+    display: flex;
+}
+
+#evaluation{
+
+}
