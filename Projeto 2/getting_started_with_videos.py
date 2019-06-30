@@ -45,10 +45,7 @@ def main():
             x, y, w, h = roi
             dst = dst[y:y+h, x:x+w]
 
-            # Planar Tracking
-            processedFrame = planarTracking2(orb, imageToTrack, dst)
-
-            cv2.imshow('frame', processedFrame)
+            cv2.imshow('frame', dst)
 
             # Escuta input do usuário
             '''
@@ -61,9 +58,8 @@ def main():
                 print("15 photos of the chessboard will be taken.\n Press the 'n' key when ready to take photo until all the photos are taken.")
                 calibrate(cap)
                 print("calibration done...")
-            # DEBUG
-            # elif key == ord('p'):
-            #     planarTracking2(orb, imageToTrack, dst)
+            elif key == ord('p'):
+                planarTracking2(orb, imageToTrack, dst, "DEBUG")
             elif key == ord('q'):
                 break
         else:
@@ -159,7 +155,7 @@ def planarTracking(orb, referenceImage, frame):
     cv2.destroyWindow('matches')
     return
 
-def planarTracking2(orb, referenceImage, frame):
+def planarTracking2(orb, referenceImage, frame, option=0):
     kp1, des1 = orb.detectAndCompute(referenceImage, None)
     kp2, des2 = orb.detectAndCompute(frame, None)
 
@@ -169,39 +165,41 @@ def planarTracking2(orb, referenceImage, frame):
     # Sort them in the order of their distance.
     matches = sorted(matches, key = lambda x:x.distance)
 
-    ##### Fonte: https://stackoverflow.com/questions/51606215/how-to-draw-bounding-box-on-best-matches
-    good_matches = matches[:100]
+    
 
-    src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_matches     ]).reshape(-1,1,2)
-    dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-    matchesMask = mask.ravel().tolist()
-    h,w = referenceImage.shape[:2]
-    pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+    if(option == "DEBUG"):
+        ### DEBUG
 
-    dst = cv2.perspectiveTransform(pts,M)
-    ### DEBUG
-    #dst += (w, 0)  # adding offset - só é necessário quando processado o frame em cima de img3 apos rodar o drawMatches, porque fica com a imagem original no lado esquerdo da tela.
+        ##### Fonte: https://stackoverflow.com/questions/51606215/how-to-draw-bounding-box-on-best-matches
+        good_matches = matches[:100]
 
-    # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-    #             singlePointColor = None,
-    #             matchesMask = matchesMask, # draw only inliers
-    #             flags = 2)
+        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_matches     ]).reshape(-1,1,2)
+        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
+        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+        matchesMask = mask.ravel().tolist()
+        h,w = referenceImage.shape[:2]
+        pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
 
-    # img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,good_matches, None,**draw_params)
+        dst = cv2.perspectiveTransform(pts,M)
 
-    # Draw bounding box in Red
-    frame_with_bb = cv2.polylines(frame, [np.int32(dst)], True, (0,0,255),3, cv2.LINE_AA)
-    #####
 
-    # DEBUG
-    # cv2.imshow('matches', frame_with_bb)
-    # key = ord('w')
-    # while(key != ord('x')):
-    #     key = cv2.waitKey(0) & 0xFF
-    # cv2.destroyWindow('matches')
-    # return
-    return frame_with_bb
+        dst += (w, 0)  # adding offset - só é necessário quando processado o frame em cima de img3 apos rodar o drawMatches, porque fica com a imagem original no lado esquerdo da tela.
+
+        draw_params = dict(matchColor = (0,255,0), #draw matches in green color
+                    singlePointColor = None,
+                    matchesMask = matchesMask, #draw only inliers
+                    flags = 2)
+
+        img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,good_matches, None,**draw_params)
+        img3 = cv2.polylines(img3, [np.int32(dst)], True, (0,0,255),3, cv2.LINE_AA)
+
+        cv2.imshow('matches', img3)
+        key = ord('w')
+        while(key != ord('x')):
+            key = cv2.waitKey(0) & 0xFF
+        cv2.destroyWindow('matches')
+
+    return
 
 # PLANAR TRACKING COM KNN - NAO FUNCIONA PORQUE ALGORITMO É PATENTEADO
 # def planarTracking(sift, referenceImage, frame):
