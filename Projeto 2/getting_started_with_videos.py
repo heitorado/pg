@@ -2,9 +2,27 @@ import cv2
 import numpy as np
 
 def main():
-    # Lê as matrizes de câmera e de distorção, que vem da calibração:
+    # Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
     mtx = np.loadtxt("camera_matrix")
     dist = np.loadtxt("distortion_matrix")
+    
+    #####################################################################
+    ########################## PLANAR TRACKING ##########################
+    #####################################################################
+
+    # Lê o objeto que será rastreado pelo PLANAR TRACKING
+    imageToTrack = cv2.imread('planarTracking/korra.jpg', -1)
+    
+    # Inicializa detector ORB
+    orb = cv2.ORB_create()
+
+    # NAO FUNCIONA PORQUE PATENTE IDIOTA
+    # Inicializa detector SIFT
+    #sift = cv2.xfeatures2d.SIFT_create()
+ 
+    #####################################################################
+    #####################################################################
+    #####################################################################
 
     # Inicializa câmera
     cap = cv2.VideoCapture(0)
@@ -26,16 +44,22 @@ def main():
             # corta (tem que ver um jeito melhor porque ta ficando muito PEQUENININHO) e mostra imagem
             x, y, w, h = roi
             dst = dst[y:y+h, x:x+w]
-            cv2.imshow('frame', dst)  
+            cv2.imshow('frame', frame)
 
-            if cv2.waitKey(1) & 0xFF == ord('c'):
+            # Escuta input do usuário
+            '''
+                c - Iniciar calibração
+                q - Sair
+            '''
+            key = cv2.waitKey(1) & 0xFF  
+            if key == ord('c'):
                 print("calibration starting...")
                 print("15 photos of the chessboard will be taken.\n Press the 'n' key when ready to take photo until all the photos are taken.")
                 calibrate(cap)
                 print("calibration done...")
-
-
-            elif cv2.waitKey(1) & 0xFF == ord('q'):
+            elif key == ord('p'):
+                planarTracking(orb, imageToTrack, frame)
+            elif key == ord('q'):
                 break
         else:
             break
@@ -103,6 +127,57 @@ def calibrate(cap):
     #np.savetxt('translation_vectors', tvecs)
 
     return
+
+def planarTracking(orb, referenceImage, frame):
+    kp1, des1 = orb.detectAndCompute(referenceImage, None)
+    kp2, des2 = orb.detectAndCompute(frame, None)
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # Match descriptors.
+    matches = bf.match(des1,des2)
+    # Sort them in the order of their distance.
+    matches = sorted(matches, key = lambda x:x.distance)
+    # Draw first 10 matches.
+    img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,matches[:10],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    cv2.imshow('matches', img3)
+    cv2.waitKey(0)
+    cv2.destroyWindow('matches')
+    return
+
+# PLANAR TRACKING COM KNN - NAO FUNCIONA PORQUE ALGORITMO É PATENTEADO
+# def planarTracking(sift, referenceImage, frame):
+#     # find the keypoints and descriptors with SIFT
+#     kp1, des1 = sift.detectAndCompute(referenceImage, None)
+#     kp2, des2 = sift.detectAndCompute(frame, None)
+
+#     # FLANN parameters
+#     FLANN_INDEX_KDTREE = 1
+#     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+#     search_params = dict(checks=50)   # or pass empty dictionary
+
+#     flann = cv2.FlannBasedMatcher(index_params,search_params)
+
+#     matches = flann.knnMatch(des1,des2,k=2)
+
+#     # Need to draw only good matches, so create a mask
+#     matchesMask = [[0,0] for i in range(len(matches))]
+
+#     # ratio test as per Lowe's paper
+#     for i,(m,n) in enumerate(matches):
+#         if m.distance < 0.7*n.distance:
+#             matchesMask[i]=[1,0]
+
+
+#     draw_params = dict(matchColor = (0,255,0),
+#                    singlePointColor = (255,0,0),
+#                    matchesMask = matchesMask,
+#                    flags = cv.DrawMatchesFlags_DEFAULT)
+
+#     img3 = cv2.drawMatchesKnn(referenceImage,kp1,frame,kp2,matches,None,**draw_params)
+#     cv2.imshow('matches', img3)
+#     cv2.waitKey(0)
+#     cv2.destroyWindow('matches')
+#     return
 
 if __name__ == '__main__':
     main()
