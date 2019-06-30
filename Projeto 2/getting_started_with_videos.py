@@ -50,6 +50,7 @@ def main():
             # Escuta input do usuário
             '''
                 c - Iniciar calibração
+                p - exibir rastreamento planar da imagem atual
                 q - Sair
             '''
             key = cv2.waitKey(1) & 0xFF  
@@ -135,26 +136,6 @@ def calibrate(cap):
 
     return
 
-def planarTracking(orb, referenceImage, frame):
-    kp1, des1 = orb.detectAndCompute(referenceImage, None)
-    kp2, des2 = orb.detectAndCompute(frame, None)
-
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    # Match descriptors.
-    matches = bf.match(des1,des2)
-    # Sort them in the order of their distance.
-    matches = sorted(matches, key = lambda x:x.distance)
-    # Draw first 15 matches.
-    img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,matches[:15],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    cv2.imshow('matches', img3)
-    
-    key = ord('w')
-    while(key != ord('x')):
-        key = cv2.waitKey(0) & 0xFF
-    
-    cv2.destroyWindow('matches')
-    return
-
 def planarTracking2(orb, referenceImage, frame, option=0):
     kp1, des1 = orb.detectAndCompute(referenceImage, None)
     kp2, des2 = orb.detectAndCompute(frame, None)
@@ -164,8 +145,6 @@ def planarTracking2(orb, referenceImage, frame, option=0):
     matches = bf.match(des1,des2)
     # Sort them in the order of their distance.
     matches = sorted(matches, key = lambda x:x.distance)
-
-    
 
     if(option == "DEBUG"):
         ### DEBUG
