@@ -25,7 +25,7 @@ def main():
     #####################################################################
 
     # Inicializa câmera
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     while(cap.isOpened()):
         ret, frame = cap.read()
@@ -41,10 +41,14 @@ def main():
             # des-distorcendo (?)
             dst = cv2.undistort(frame, mtx, dist, None, newCameraMtx)
 
-            # corta (tem que ver um jeito melhor porque ta ficando muito PEQUENININHO) e mostra imagem
+            # corta e mostra imagem
             x, y, w, h = roi
             dst = dst[y:y+h, x:x+w]
-            cv2.imshow('frame', frame)
+
+            # Planar Tracking
+            processedFrame = planarTracking2(orb, imageToTrack, dst)
+
+            cv2.imshow('frame', processedFrame)
 
             # Escuta input do usuário
             '''
@@ -57,8 +61,9 @@ def main():
                 print("15 photos of the chessboard will be taken.\n Press the 'n' key when ready to take photo until all the photos are taken.")
                 calibrate(cap)
                 print("calibration done...")
-            elif key == ord('p'):
-                planarTracking(orb, imageToTrack, frame)
+            # DEBUG
+            # elif key == ord('p'):
+            #     planarTracking2(orb, imageToTrack, dst)
             elif key == ord('q'):
                 break
         else:
@@ -69,12 +74,16 @@ def main():
 
 
 def calibrate(cap):
+    # checkerboard Dimensions
+    cbcol = 15
+    cbrow = 10
+
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-    objp = np.zeros((6*7,3), np.float32)
-    objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
+    objp = np.zeros((cbrow * cbcol, 3), np.float32)
+    objp[:,:2] = np.mgrid[0:cbcol,0:cbrow].T.reshape(-1,2)
 
     # Arrays to store object points and image points from all the images.
     objpoints = [] # 3d point in real world space
@@ -99,7 +108,7 @@ def calibrate(cap):
                 capturedFrame = grayScaleFrame
 
                 # Encontra os cantos do chessboard
-                ret, corners = cv2.findChessboardCorners(grayScaleFrame, (7,6), None)
+                ret, corners = cv2.findChessboardCorners(grayScaleFrame, (cbcol, cbrow), None)
 
                 # If found, add object points, image points (after refining them)
                 if ret == True:
@@ -112,9 +121,11 @@ def calibrate(cap):
                     imgpoints.append(corners2)
 
                     # Draw and display the corners
-                    cv2.drawChessboardCorners(frame, (7,6), corners2,ret)
+                    cv2.drawChessboardCorners(frame, (cbcol, cbrow), corners2, ret)
                     cv2.imshow('img', frame)
-                    cv2.waitKey(0)
+                    key = ord('w')
+                    while(key != ord('x')):
+                        key = cv2.waitKey(0) & 0xFF
                     cv2.destroyWindow('img')
 
     # obtem a matriz da camera, coefiecientes de distorção, vetores de rotação e translação
@@ -137,12 +148,60 @@ def planarTracking(orb, referenceImage, frame):
     matches = bf.match(des1,des2)
     # Sort them in the order of their distance.
     matches = sorted(matches, key = lambda x:x.distance)
-    # Draw first 10 matches.
-    img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,matches[:10],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    # Draw first 15 matches.
+    img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,matches[:15],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     cv2.imshow('matches', img3)
-    cv2.waitKey(0)
+    
+    key = ord('w')
+    while(key != ord('x')):
+        key = cv2.waitKey(0) & 0xFF
+    
     cv2.destroyWindow('matches')
     return
+
+def planarTracking2(orb, referenceImage, frame):
+    kp1, des1 = orb.detectAndCompute(referenceImage, None)
+    kp2, des2 = orb.detectAndCompute(frame, None)
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # Match descriptors.
+    matches = bf.match(des1,des2)
+    # Sort them in the order of their distance.
+    matches = sorted(matches, key = lambda x:x.distance)
+
+    ##### Fonte: https://stackoverflow.com/questions/51606215/how-to-draw-bounding-box-on-best-matches
+    good_matches = matches[:100]
+
+    src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_matches     ]).reshape(-1,1,2)
+    dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
+    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+    matchesMask = mask.ravel().tolist()
+    h,w = referenceImage.shape[:2]
+    pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+
+    dst = cv2.perspectiveTransform(pts,M)
+    ### DEBUG
+    #dst += (w, 0)  # adding offset - só é necessário quando processado o frame em cima de img3 apos rodar o drawMatches, porque fica com a imagem original no lado esquerdo da tela.
+
+    # draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+    #             singlePointColor = None,
+    #             matchesMask = matchesMask, # draw only inliers
+    #             flags = 2)
+
+    # img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,good_matches, None,**draw_params)
+
+    # Draw bounding box in Red
+    frame_with_bb = cv2.polylines(frame, [np.int32(dst)], True, (0,0,255),3, cv2.LINE_AA)
+    #####
+
+    # DEBUG
+    # cv2.imshow('matches', frame_with_bb)
+    # key = ord('w')
+    # while(key != ord('x')):
+    #     key = cv2.waitKey(0) & 0xFF
+    # cv2.destroyWindow('matches')
+    # return
+    return frame_with_bb
 
 # PLANAR TRACKING COM KNN - NAO FUNCIONA PORQUE ALGORITMO É PATENTEADO
 # def planarTracking(sift, referenceImage, frame):
