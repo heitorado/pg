@@ -50,34 +50,29 @@ def main():
     cv2.destroyAllWindows()
 
 def poseEstimation(frame):
-    #plane = np.float32([[0,0,1], [0,10,1], [10,10,1], [10,0,1],
-    #               [0,0,1],[0,10,1],[10,10,1],[10,0,1] ])
-
-    h, w = imageToTrack.shape[:2]
-    original_image_rectangle_points = np.array([[0,0,1],[w,0,1], [w,h,1], [0,h,1]], np.float32)
-
     obj_points, frame_points = planarTracking2(orb, imageToTrack, frame)
 
     ret, rvec, tvec = cv2.solvePnP(obj_points, frame_points, mtx, dist)
 
+    # Obtem os pontos 3D q contornam a imagem original object
+    h, w = imageToTrack.shape[:2]
+    original_image_rectangle_points = np.array([[0,0,1],[w,0,1], [w,h,1], [0,h,1]], np.float32)
+
     # project 3D points to image plane
     imgpts, jac = cv2.projectPoints(original_image_rectangle_points, rvec, tvec, mtx, dist)
 
-    frame = draw(frame, imgpts)
+    # Desenha bounding box ao redor do objeto
+    frame = drawBoundingRectangle(frame, imgpts)
 
     return frame
 
-def draw(img, imgpts):
-    
-
-    #imgpts = np.int32(imgpts).reshape(-1,2)
-    
+def drawBoundingRectangle(img, imgpts):
     pts = np.int32(imgpts).reshape((-1,1,2))
-    print(pts)
+    for p in pts:
+        if((p[0][0]) < 0 or (p[0][1]) < 0):
+            return img
 
-    img = cv2.polylines(img, [pts], True, (0,255,0))
-
-    #img = cv2.drawContours(img, [imgpts[:4]], -1, (0,255,0), -3)
+    img = cv2.polylines(img, [pts], True, (242, 242, 80), 2)
 
     return img
 
@@ -202,7 +197,7 @@ def planarTracking2(orb, referenceImage, frame, option=0):
             key = cv2.waitKey(0) & 0xFF
         cv2.destroyWindow('Showing matches')
     else:
-        matches_sample = matches[:75]
+        matches_sample = matches[:100]
 
         src_pts = np.float32([ kp1[m.queryIdx].pt for m in matches_sample ])
         src_pts = np.hstack((src_pts, np.ones((src_pts.shape[0], 1), dtype=src_pts.dtype)))
