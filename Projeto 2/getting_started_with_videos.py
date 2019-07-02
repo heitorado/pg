@@ -2,6 +2,10 @@ import cv2
 import numpy as np
 
 ### Global stuff ###
+# Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
+mtx  = np.loadtxt("camera_matrix")
+dist = np.loadtxt("distortion_matrix")
+
 # Carrega a imagem que será rastreada pelo PLANAR TRACKING
 imageToTrack = cv2.imread('planarTracking/korra.jpg', -1)
 
@@ -10,7 +14,7 @@ orb = cv2.ORB_create()
 
 def main():
     # Inicializa câmera
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     while(cap.isOpened()):
         ret, frame = cap.read()
@@ -18,6 +22,9 @@ def main():
         if ret:
             frame = loadCameraSettings(frame)
 
+            frame = poseEstimation(frame)
+
+            # Mostra imagem frame a frame, após todos os tratamentos anteriores
             cv2.imshow('Projeto PG', frame)
 
             # Escuta input do usuário
@@ -42,11 +49,41 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-def loadCameraSettings(frame):
-    # Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
-    mtx = np.loadtxt("camera_matrix")
-    dist = np.loadtxt("distortion_matrix")
+def poseEstimation(frame):
+    #plane = np.float32([[0,0,1], [0,10,1], [10,10,1], [10,0,1],
+    #               [0,0,1],[0,10,1],[10,10,1],[10,0,1] ])
 
+    h, w = imageToTrack.shape[:2]
+    original_image_rectangle_points = np.array([[0,0,1],[w,0,1], [w,h,1], [0,h,1]], np.float32)
+
+    obj_points, frame_points = planarTracking2(orb, imageToTrack, frame)
+
+    ret, rvec, tvec = cv2.solvePnP(obj_points, frame_points, mtx, dist)
+
+    # project 3D points to image plane
+    imgpts, jac = cv2.projectPoints(original_image_rectangle_points, rvec, tvec, mtx, dist)
+
+    frame = draw(frame, imgpts)
+
+    return frame
+
+def draw(img, imgpts):
+    
+
+    #imgpts = np.int32(imgpts).reshape(-1,2)
+    
+    pts = np.int32(imgpts).reshape((-1,1,2))
+    print(pts)
+
+    img = cv2.polylines(img, [pts], True, (0,255,0))
+
+    #img = cv2.drawContours(img, [imgpts[:4]], -1, (0,255,0), -3)
+
+    return img
+
+
+
+def loadCameraSettings(frame):
     h, w = frame.shape[:2]
     newCameraMtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
 
@@ -137,11 +174,10 @@ def planarTracking2(orb, referenceImage, frame, option=0):
 
     if(option == "DEBUG"):
         ### DEBUG
-
         ##### Fonte: https://stackoverflow.com/questions/51606215/how-to-draw-bounding-box-on-best-matches
         good_matches = matches[:100]
 
-        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_matches     ]).reshape(-1,1,2)
+        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
         dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
         matchesMask = mask.ravel().tolist()
@@ -150,24 +186,29 @@ def planarTracking2(orb, referenceImage, frame, option=0):
 
         dst = cv2.perspectiveTransform(pts,M)
 
-
         dst += (w, 0)  # adding offset - só é necessário quando processado o frame em cima de img3 apos rodar o drawMatches, porque fica com a imagem original no lado esquerdo da tela.
 
-        draw_params = dict(matchColor = (0,255,0), #draw matches in green color
-                    singlePointColor = None,
-                    matchesMask = matchesMask, #draw only inliers
-                    flags = 2)
+        draw_params = dict( matchColor = (0,255,0), #draw matches in green color
+                            singlePointColor = None,
+                            matchesMask = matchesMask, #draw only inliers
+                            flags = 2)
 
         img3 = cv2.drawMatches(referenceImage,kp1,frame,kp2,good_matches, None,**draw_params)
         img3 = cv2.polylines(img3, [np.int32(dst)], True, (0,0,255),3, cv2.LINE_AA)
 
-        cv2.imshow('matches', img3)
+        cv2.imshow('Showing matches', img3)
         key = ord('w')
         while(key != ord('x')):
             key = cv2.waitKey(0) & 0xFF
-        cv2.destroyWindow('matches')
+        cv2.destroyWindow('Showing matches')
+    else:
+        matches_sample = matches[:75]
 
-    return
+        src_pts = np.float32([ kp1[m.queryIdx].pt for m in matches_sample ])
+        src_pts = np.hstack((src_pts, np.ones((src_pts.shape[0], 1), dtype=src_pts.dtype)))
+        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in matches_sample ])
+
+    return src_pts, dst_pts
 
 if __name__ == '__main__':
     main()
