@@ -1,29 +1,14 @@
 import cv2
 import numpy as np
 
+### Global stuff ###
+# Carrega a imagem que será rastreada pelo PLANAR TRACKING
+imageToTrack = cv2.imread('planarTracking/korra.jpg', -1)
+
+# Inicializa detector ORB
+orb = cv2.ORB_create()
+
 def main():
-    # Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
-    mtx = np.loadtxt("camera_matrix")
-    dist = np.loadtxt("distortion_matrix")
-    
-    #####################################################################
-    ########################## PLANAR TRACKING ##########################
-    #####################################################################
-
-    # Lê o objeto que será rastreado pelo PLANAR TRACKING
-    imageToTrack = cv2.imread('planarTracking/korra.jpg', -1)
-    
-    # Inicializa detector ORB
-    orb = cv2.ORB_create()
-
-    # NAO FUNCIONA PORQUE PATENTE IDIOTA
-    # Inicializa detector SIFT
-    #sift = cv2.xfeatures2d.SIFT_create()
- 
-    #####################################################################
-    #####################################################################
-    #####################################################################
-
     # Inicializa câmera
     cap = cv2.VideoCapture(1)
 
@@ -31,21 +16,9 @@ def main():
         ret, frame = cap.read()
 
         if ret:
-            # print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            # print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            frame = loadCameraSettings(frame)
 
-            #grayScaleFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            h, w = frame.shape[:2]
-            newCameraMtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
-
-            # des-distorcendo (?)
-            dst = cv2.undistort(frame, mtx, dist, None, newCameraMtx)
-
-            # corta e mostra imagem
-            x, y, w, h = roi
-            dst = dst[y:y+h, x:x+w]
-
-            cv2.imshow('frame', dst)
+            cv2.imshow('Projeto PG', frame)
 
             # Escuta input do usuário
             '''
@@ -60,7 +33,7 @@ def main():
                 calibrate(cap)
                 print("calibration done...")
             elif key == ord('p'):
-                planarTracking2(orb, imageToTrack, dst, "DEBUG")
+                planarTracking2(orb, imageToTrack, frame, "DEBUG")
             elif key == ord('q'):
                 break
         else:
@@ -69,6 +42,22 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
+def loadCameraSettings(frame):
+    # Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
+    mtx = np.loadtxt("camera_matrix")
+    dist = np.loadtxt("distortion_matrix")
+
+    h, w = frame.shape[:2]
+    newCameraMtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+
+    # des-distorcendo (?)
+    dst = cv2.undistort(frame, mtx, dist, None, newCameraMtx)
+
+    # corta e mostra imagem
+    x, y, w, h = roi
+    dst = dst[y:y+h, x:x+w]
+
+    return dst
 
 def calibrate(cap):
     # checkerboard Dimensions
@@ -179,41 +168,6 @@ def planarTracking2(orb, referenceImage, frame, option=0):
         cv2.destroyWindow('matches')
 
     return
-
-# PLANAR TRACKING COM KNN - NAO FUNCIONA PORQUE ALGORITMO É PATENTEADO
-# def planarTracking(sift, referenceImage, frame):
-#     # find the keypoints and descriptors with SIFT
-#     kp1, des1 = sift.detectAndCompute(referenceImage, None)
-#     kp2, des2 = sift.detectAndCompute(frame, None)
-
-#     # FLANN parameters
-#     FLANN_INDEX_KDTREE = 1
-#     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-#     search_params = dict(checks=50)   # or pass empty dictionary
-
-#     flann = cv2.FlannBasedMatcher(index_params,search_params)
-
-#     matches = flann.knnMatch(des1,des2,k=2)
-
-#     # Need to draw only good matches, so create a mask
-#     matchesMask = [[0,0] for i in range(len(matches))]
-
-#     # ratio test as per Lowe's paper
-#     for i,(m,n) in enumerate(matches):
-#         if m.distance < 0.7*n.distance:
-#             matchesMask[i]=[1,0]
-
-
-#     draw_params = dict(matchColor = (0,255,0),
-#                    singlePointColor = (255,0,0),
-#                    matchesMask = matchesMask,
-#                    flags = cv.DrawMatchesFlags_DEFAULT)
-
-#     img3 = cv2.drawMatchesKnn(referenceImage,kp1,frame,kp2,matches,None,**draw_params)
-#     cv2.imshow('matches', img3)
-#     cv2.waitKey(0)
-#     cv2.destroyWindow('matches')
-#     return
 
 if __name__ == '__main__':
     main()
