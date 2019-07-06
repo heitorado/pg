@@ -57,6 +57,9 @@ def poseEstimation(frame):
     # Obtem os pontos 3D q contornam a imagem original object
     h, w = imageToTrack.shape[:2]
     original_image_rectangle_points = np.array([[0,0,1],[w,0,1], [w,h,1], [0,h,1]], np.float32)
+
+    w = w/3
+    h = h/3
     cubeaxis = np.float32([[0,0,0], [0,h,0], [w,h,0], [w,0,0],
                         [0,0,w*(-1)],[0,h,w*(-1)],[w,h,w*(-1)],[w,0,w*(-1)] ])
 
