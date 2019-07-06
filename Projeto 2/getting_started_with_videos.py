@@ -57,12 +57,20 @@ def poseEstimation(frame):
     # Obtem os pontos 3D q contornam a imagem original object
     h, w = imageToTrack.shape[:2]
     original_image_rectangle_points = np.array([[0,0,1],[w,0,1], [w,h,1], [0,h,1]], np.float32)
+    cubeaxis = np.float32([[0,0,0], [0,h,0], [w,h,0], [w,0,0],
+                        [0,0,w*(-1)],[0,h,w*(-1)],[w,h,w*(-1)],[w,0,w*(-1)] ])
 
-    # project 3D points to image plane
-    imgpts, jac = cv2.projectPoints(original_image_rectangle_points, rvec, tvec, mtx, dist)
+    # project 3D points to image plane - bounding box
+    bbpts, jac = cv2.projectPoints(original_image_rectangle_points, rvec, tvec, mtx, dist)
 
     # Desenha bounding box ao redor do objeto
-    frame = drawBoundingRectangle(frame, imgpts)
+    frame = drawBoundingRectangle(frame, bbpts)
+
+    # project 3D points to image plane - cube
+    cbpts, jac = cv2.projectPoints(cubeaxis, rvec, tvec, mtx, dist)
+
+    # Desenha cubo em cima do objeto
+    frame = drawCube(frame, cbpts)
 
     return frame
 
@@ -76,7 +84,20 @@ def drawBoundingRectangle(img, imgpts):
 
     return img
 
+def drawCube(img, imgpts):
+    pts = np.int32(imgpts).reshape((-1,1,2))
 
+    # draw ground floor in green
+    img = cv2.drawContours(img, [pts[:4]],-1,(0,255,0),-3)
+
+    # draw pillars in blue color
+    for i,j in zip(range(4),range(4,8)):
+        img = cv2.line(img, tuple(pts[i][0]), tuple(pts[j][0]),(255,0,0),3)
+
+    # draw top layer in red color
+    img = cv2.drawContours(img, [pts[4:]],-1,(0,0,255),3)
+
+    return img
 
 def loadCameraSettings(frame):
     h, w = frame.shape[:2]
@@ -121,6 +142,7 @@ def calibrate(cap):
             # espera o usuario dizer que quer capturar o frame
             if cv2.waitKey(1) & 0xFF == ord('n'):
                 if(capturedFramesCount == 14):
+                    cv2.destroyWindow('img')
                     break
 
                 capturedFrame = grayScaleFrame
