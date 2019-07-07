@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 
 ### Global stuff ###
 # Lê as matrizes de câmera e de distorção, que vem da calibração (e podem ser 'regeradas' calibrando novamente):
@@ -15,18 +16,26 @@ orb = cv2.ORB_create()
 def main():
     # Inicializa câmera
     cap = cv2.VideoCapture(0)
-
+    startTime = time.time()
+    qtFrames = 0
+    FPS = -1
     while(cap.isOpened()):
         ret, frame = cap.read()
-
+        curTime = time.time()
+        if curTime-startTime>=1:
+            startTime = curTime
+            FPS = qtFrames
+            qtFrames = 0
+        else:
+            qtFrames = qtFrames+1
+        
         if ret:
             frame = loadCameraSettings(frame)
 
             frame = poseEstimation(frame)
-
+            cv2.putText(frame, 'FPS: '+str(FPS), (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
             # Mostra imagem frame a frame, após todos os tratamentos anteriores
             cv2.imshow('Projeto PG', frame)
-
             # Escuta input do usuário
             '''
                 c - Iniciar calibração
